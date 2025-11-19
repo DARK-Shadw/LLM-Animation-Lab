@@ -1,0 +1,32 @@
+{
+  "name": "llm-animation-lab",
+  "version": "1.0.0",
+  "description": "AI-Powered 2D Skeleton Animation System - Create character animations through natural language",
+  "main": "index.html",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "serve": "npx serve .",
+    "dev": "npx live-server"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DARK-Shadw/LLM-Animation-Lab.git"
+  },
+  "keywords": [
+    "animation",
+    "llm",
+    "ai",
+    "skeleton",
+    "2d",
+    "character",
+    "claude",
+    "natural-language",
+    "creative-ai"
+  ],
+  "author": "DARK-Shadw",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/DARK-Shadw/LLM-Animation-Lab/issues"
+  },
+  "homepage": "https://github.com/DARK-Shadw/LLM-Animation-Lab#readme"
+}

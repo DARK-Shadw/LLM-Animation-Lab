@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Animation Lab - AI-Powered 2D Skeleton Animation</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎬 LLM Animation Lab</h1>
+            <p class="subtitle">Create character animations through natural language</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Animation Canvas -->
+            <div class="canvas-container">
+                <canvas id="animationCanvas" width="800" height="600"></canvas>
+                <div class="canvas-overlay">
+                    <div class="skeleton-info" id="skeletonInfo">
+                        <span>Ready to animate</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Control Panel -->
+            <div class="control-panel">
+                <!-- Prompt Input -->
+                <div class="prompt-section">
+                    <label for="promptInput">Animation Prompt</label>
+                    <textarea
+                        id="promptInput"
+                        placeholder="Describe the animation you want... e.g., 'Make the character do a backflip' or 'Have them wave hello enthusiastically'"
+                        rows="3"
+                    ></textarea>
+                    <div class="prompt-examples">
+                        <span class="label">Examples:</span>
+                        <button class="example-btn" data-prompt="Make the character wave hello">Wave hello</button>
+                        <button class="example-btn" data-prompt="Have the character do a backflip">Backflip</button>
+                        <button class="example-btn" data-prompt="Create a celebratory victory dance">Victory dance</button>
+                        <button class="example-btn" data-prompt="Make them jump and reach for something high">Jump and reach</button>
+                    </div>
+                    <button id="generateBtn" class="primary-btn">
+                        <span class="btn-text">Generate Animation</span>
+                        <span class="btn-loader" style="display: none;">⏳</span>
+                    </button>
+                </div>
+
+                <!-- Playback Controls -->
+                <div class="playback-section">
+                    <div class="playback-controls">
+                        <button id="playBtn" class="control-btn" disabled>▶ Play</button>
+                        <button id="pauseBtn" class="control-btn" disabled>⏸ Pause</button>
+                        <button id="resetBtn" class="control-btn" disabled>⏮ Reset</button>
+                        <label class="loop-control">
+                            <input type="checkbox" id="loopCheckbox" checked>
+                            Loop
+                        </label>
+                    </div>
+                    <div class="speed-control">
+                        <label for="speedSlider">Speed: <span id="speedValue">1.0</span>x</label>
+                        <input type="range" id="speedSlider" min="0.25" max="2.0" step="0.25" value="1.0">
+                    </div>
+                    <div class="timeline">
+                        <input type="range" id="timelineSlider" min="0" max="100" value="0" disabled>
+                        <div class="timeline-info">
+                            <span id="currentTime">0.0s</span> / <span id="totalTime">0.0s</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings -->
+                <div class="settings-section">
+                    <details>
+                        <summary>⚙️ Settings</summary>
+                        <div class="settings-content">
+                            <label>
+                                <input type="checkbox" id="showBonesCheckbox" checked>
+                                Show bones
+                            </label>
+                            <label>
+                                <input type="checkbox" id="showJointsCheckbox" checked>
+                                Show joints
+                            </label>
+                            <label>
+                                <input type="checkbox" id="showNamesCheckbox">
+                                Show joint names
+                            </label>
+                            <div class="api-key-section">
+                                <label for="apiKeyInput">Claude API Key (optional)</label>
+                                <input
+                                    type="password"
+                                    id="apiKeyInput"
+                                    placeholder="sk-ant-..."
+                                    title="Enter your Anthropic API key for LLM-powered animations"
+                                >
+                                <small>Leave empty to use demo mode with predefined animations</small>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+
+                <!-- Status/Log -->
+                <div class="status-section">
+                    <div id="statusLog" class="status-log">
+                        <div class="status-message info">
+                            Welcome! Enter a prompt to generate an animation.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>
