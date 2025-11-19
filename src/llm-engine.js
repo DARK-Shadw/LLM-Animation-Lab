@@ -20,8 +20,8 @@ export class LLMAnimationEngine {
                 model: 'claude-3-5-sonnet-20241022'
             },
             gemini: {
-                endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent',
-                model: 'gemini-1.5-pro'
+                endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent',
+                model: 'gemini-2.0-flash-exp'
             }
         };
     }
