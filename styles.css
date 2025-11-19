@@ -407,3 +407,71 @@ input[type="range"]::-moz-range-thumb {
 .btn-loader {
     animation: pulse 1.5s ease-in-out infinite;
 }
+/* API Provider Select */
+.api-key-section select {
+    width: 100%;
+    padding: 10px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+    cursor: pointer;
+}
+
+.api-key-section select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+/* Advanced Features */
+.feature-section {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border);
+}
+
+.feature-section:first-child {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+}
+
+.feature-section strong {
+    display: block;
+    margin-bottom: 10px;
+    color: var(--primary-color);
+}
+
+.feature-btn {
+    width: 100%;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    background: var(--surface-light);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.feature-btn:hover {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    transform: translateY(-1px);
+}
+
+.feature-btn:active {
+    transform: translateY(0);
+}
+
+.feature-section small {
+    display: block;
+    margin-top: 8px;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-style: italic;
+}

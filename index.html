@@ -72,7 +72,7 @@
 
                 <!-- Settings -->
                 <div class="settings-section">
-                    <details>
+                    <details open>
                         <summary>⚙️ Settings</summary>
                         <div class="settings-content">
                             <label>
@@ -87,15 +87,64 @@
                                 <input type="checkbox" id="showNamesCheckbox">
                                 Show joint names
                             </label>
+
+                            <!-- API Configuration -->
                             <div class="api-key-section">
-                                <label for="apiKeyInput">Claude API Key (optional)</label>
+                                <label for="apiProvider">AI Provider</label>
+                                <select id="apiProvider">
+                                    <option value="demo">Demo Mode (No API)</option>
+                                    <option value="claude">Claude (Anthropic)</option>
+                                    <option value="gemini">Gemini (Google)</option>
+                                </select>
+
+                                <label for="apiKeyInput" id="apiKeyLabel">API Key</label>
                                 <input
                                     type="password"
                                     id="apiKeyInput"
-                                    placeholder="sk-ant-..."
-                                    title="Enter your Anthropic API key for LLM-powered animations"
+                                    placeholder="Enter API key..."
+                                    title="Enter your API key for LLM-powered animations"
                                 >
-                                <small>Leave empty to use demo mode with predefined animations</small>
+                                <small id="apiKeyHelp">Select a provider above to enable AI-generated animations</small>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+
+                <!-- Advanced Features -->
+                <div class="settings-section">
+                    <details>
+                        <summary>🎯 Advanced Animation</summary>
+                        <div class="settings-content">
+                            <!-- IK Controls -->
+                            <div class="feature-section">
+                                <strong>Inverse Kinematics (IK)</strong>
+                                <button class="feature-btn" id="ikArmLeftBtn">Position Left Hand</button>
+                                <button class="feature-btn" id="ikArmRightBtn">Position Right Hand</button>
+                                <button class="feature-btn" id="ikLegLeftBtn">Position Left Foot</button>
+                                <button class="feature-btn" id="ikLegRightBtn">Position Right Foot</button>
+                                <small>Click to position limbs using inverse kinematics</small>
+                            </div>
+
+                            <!-- Physics/Ragdoll -->
+                            <div class="feature-section">
+                                <strong>Physics & Ragdoll</strong>
+                                <label>
+                                    <input type="checkbox" id="physicsEnabledCheckbox">
+                                    Enable Physics Simulation
+                                </label>
+                                <button class="feature-btn" id="ragdollBtn">Trigger Ragdoll</button>
+                                <button class="feature-btn" id="resetPhysicsBtn">Reset Physics</button>
+                                <label for="gravitySlider">Gravity: <span id="gravityValue">980</span> px/s²</label>
+                                <input type="range" id="gravitySlider" min="0" max="2000" step="100" value="980">
+                                <small>Enable physics for realistic falling and ragdoll effects</small>
+                            </div>
+
+                            <!-- Procedural Animation -->
+                            <div class="feature-section">
+                                <strong>Procedural Animation</strong>
+                                <button class="feature-btn" id="proceduralWalkBtn">Procedural Walk</button>
+                                <button class="feature-btn" id="proceduralIdleBtn">Breathing Idle</button>
+                                <small>Real-time procedurally generated animations</small>
                             </div>
                         </div>
                     </details>

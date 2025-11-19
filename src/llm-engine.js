@@ -9,10 +9,31 @@
 import { Animation, Easing } from './animation.js';
 
 export class LLMAnimationEngine {
-    constructor(apiKey = null) {
+    constructor(apiKey = null, provider = 'claude') {
         this.apiKey = apiKey;
-        this.apiEndpoint = 'https://api.anthropic.com/v1/messages';
-        this.model = 'claude-3-5-sonnet-20241022';
+        this.provider = provider; // 'claude' or 'gemini'
+
+        // API configurations
+        this.config = {
+            claude: {
+                endpoint: 'https://api.anthropic.com/v1/messages',
+                model: 'claude-3-5-sonnet-20241022'
+            },
+            gemini: {
+                endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent',
+                model: 'gemini-1.5-pro'
+            }
+        };
+    }
+
+    /**
+     * Set API provider
+     */
+    setProvider(provider) {
+        if (provider !== 'claude' && provider !== 'gemini') {
+            throw new Error('Invalid provider. Use "claude" or "gemini"');
+        }
+        this.provider = provider;
     }
 
     /**
@@ -25,7 +46,14 @@ export class LLMAnimationEngine {
 
         try {
             const systemPrompt = this.buildSystemPrompt(skeleton);
-            const response = await this.callClaudeAPI(systemPrompt, prompt);
+            let response;
+
+            if (this.provider === 'gemini') {
+                response = await this.callGeminiAPI(systemPrompt, prompt);
+            } else {
+                response = await this.callClaudeAPI(systemPrompt, prompt);
+            }
+
             const animation = this.parseAnimationResponse(response);
             return animation;
         } catch (error) {
@@ -124,7 +152,8 @@ Generate creative, physically plausible animations that match the user's intent!
      * Call Claude API
      */
     async callClaudeAPI(systemPrompt, userPrompt) {
-        const response = await fetch(this.apiEndpoint, {
+        const config = this.config.claude;
+        const response = await fetch(config.endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -132,7 +161,7 @@ Generate creative, physically plausible animations that match the user's intent!
                 'anthropic-version': '2023-06-01'
             },
             body: JSON.stringify({
-                model: this.model,
+                model: config.model,
                 max_tokens: 4096,
                 system: systemPrompt,
                 messages: [
@@ -146,11 +175,59 @@ Generate creative, physically plausible animations that match the user's intent!
 
         if (!response.ok) {
             const error = await response.text();
-            throw new Error(`API request failed: ${response.status} - ${error}`);
+            throw new Error(`Claude API request failed: ${response.status} - ${error}`);
         }
 
         const data = await response.json();
         return data.content[0].text;
+    }
+
+    /**
+     * Call Gemini API
+     */
+    async callGeminiAPI(systemPrompt, userPrompt) {
+        const config = this.config.gemini;
+        const url = `${config.endpoint}?key=${this.apiKey}`;
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                contents: [
+                    {
+                        role: 'user',
+                        parts: [
+                            { text: systemPrompt + '\n\n' + userPrompt }
+                        ]
+                    }
+                ],
+                generationConfig: {
+                    temperature: 0.7,
+                    maxOutputTokens: 4096,
+                    topP: 0.95,
+                    topK: 40
+                }
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(`Gemini API request failed: ${response.status} - ${error}`);
+        }
+
+        const data = await response.json();
+
+        // Gemini response format is different
+        if (data.candidates && data.candidates.length > 0) {
+            const candidate = data.candidates[0];
+            if (candidate.content && candidate.content.parts && candidate.content.parts.length > 0) {
+                return candidate.content.parts[0].text;
+            }
+        }
+
+        throw new Error('Invalid Gemini API response format');
     }
 
     /**

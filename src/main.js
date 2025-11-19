@@ -8,6 +8,8 @@ import { Skeleton } from './skeleton.js';
 import { AnimationPlayer } from './animation.js';
 import { SkeletonRenderer } from './renderer.js';
 import { LLMAnimationEngine } from './llm-engine.js';
+import { IKHelper } from './ik-solver.js';
+import { RagdollPhysics, ProceduralAnimation } from './physics.js';
 
 class AnimationApp {
     constructor() {
@@ -15,6 +17,9 @@ class AnimationApp {
         this.renderer = null;
         this.player = null;
         this.llmEngine = null;
+        this.ragdollPhysics = null;
+        this.ikMode = null; // 'arm_left', 'arm_right', 'leg_left', 'leg_right', or null
+        this.proceduralMode = null; // 'walk', 'idle', or null
 
         this.init();
     }
@@ -41,19 +46,42 @@ class AnimationApp {
         this.showJointsCheckbox = document.getElementById('showJointsCheckbox');
         this.showNamesCheckbox = document.getElementById('showNamesCheckbox');
         this.apiKeyInput = document.getElementById('apiKeyInput');
+        this.apiProvider = document.getElementById('apiProvider');
         this.skeletonInfo = document.getElementById('skeletonInfo');
+
+        // Advanced feature elements
+        this.ikArmLeftBtn = document.getElementById('ikArmLeftBtn');
+        this.ikArmRightBtn = document.getElementById('ikArmRightBtn');
+        this.ikLegLeftBtn = document.getElementById('ikLegLeftBtn');
+        this.ikLegRightBtn = document.getElementById('ikLegRightBtn');
+        this.physicsEnabledCheckbox = document.getElementById('physicsEnabledCheckbox');
+        this.ragdollBtn = document.getElementById('ragdollBtn');
+        this.resetPhysicsBtn = document.getElementById('resetPhysicsBtn');
+        this.gravitySlider = document.getElementById('gravitySlider');
+        this.gravityValue = document.getElementById('gravityValue');
+        this.proceduralWalkBtn = document.getElementById('proceduralWalkBtn');
+        this.proceduralIdleBtn = document.getElementById('proceduralIdleBtn');
 
         // Initialize components
         this.skeleton = new Skeleton();
         this.renderer = new SkeletonRenderer(this.canvas);
         this.player = new AnimationPlayer(this.skeleton);
         this.llmEngine = new LLMAnimationEngine();
+        this.ragdollPhysics = new RagdollPhysics(this.skeleton);
+        this.proceduralTime = 0;
 
-        // Load API key from localStorage if available
-        const savedApiKey = localStorage.getItem('claude_api_key');
+        // Load API settings from localStorage
+        const savedApiKey = localStorage.getItem('api_key');
+        const savedProvider = localStorage.getItem('api_provider') || 'demo';
+
         if (savedApiKey) {
             this.apiKeyInput.value = savedApiKey;
             this.llmEngine.apiKey = savedApiKey;
+        }
+
+        this.apiProvider.value = savedProvider;
+        if (savedProvider !== 'demo') {
+            this.llmEngine.setProvider(savedProvider);
         }
 
         // Setup event listeners
@@ -117,16 +145,31 @@ class AnimationApp {
             this.renderer.setShowNames(this.showNamesCheckbox.checked);
         });
 
+        // API provider
+        this.apiProvider.addEventListener('change', () => {
+            const provider = this.apiProvider.value;
+            localStorage.setItem('api_provider', provider);
+
+            if (provider === 'demo') {
+                this.llmEngine.apiKey = null;
+                this.logMessage('Using demo mode with predefined animations', 'info');
+            } else {
+                this.llmEngine.setProvider(provider);
+                const providerName = provider === 'claude' ? 'Claude (Anthropic)' : 'Gemini (Google)';
+                this.logMessage(`Switched to ${providerName}`, 'info');
+            }
+        });
+
         // API key
         this.apiKeyInput.addEventListener('change', () => {
             const apiKey = this.apiKeyInput.value.trim();
             if (apiKey) {
                 this.llmEngine.apiKey = apiKey;
-                localStorage.setItem('claude_api_key', apiKey);
+                localStorage.setItem('api_key', apiKey);
                 this.logMessage('API key saved', 'success');
             } else {
                 this.llmEngine.apiKey = null;
-                localStorage.removeItem('claude_api_key');
+                localStorage.removeItem('api_key');
                 this.logMessage('API key removed - using demo mode', 'info');
             }
         });
@@ -138,6 +181,39 @@ class AnimationApp {
                 this.generateAnimation();
             }
         });
+
+        // IK Controls
+        this.ikArmLeftBtn.addEventListener('click', () => this.enableIKMode('arm_left'));
+        this.ikArmRightBtn.addEventListener('click', () => this.enableIKMode('arm_right'));
+        this.ikLegLeftBtn.addEventListener('click', () => this.enableIKMode('leg_left'));
+        this.ikLegRightBtn.addEventListener('click', () => this.enableIKMode('leg_right'));
+
+        // Physics Controls
+        this.physicsEnabledCheckbox.addEventListener('change', () => {
+            if (this.physicsEnabledCheckbox.checked) {
+                this.ragdollPhysics.enable();
+                this.logMessage('Physics simulation enabled', 'success');
+            } else {
+                this.ragdollPhysics.disable();
+                this.logMessage('Physics simulation disabled', 'info');
+            }
+        });
+
+        this.ragdollBtn.addEventListener('click', () => this.triggerRagdoll());
+        this.resetPhysicsBtn.addEventListener('click', () => this.resetPhysics());
+
+        this.gravitySlider.addEventListener('input', () => {
+            const gravity = parseInt(this.gravitySlider.value);
+            this.gravityValue.textContent = gravity;
+            this.ragdollPhysics.gravity = gravity;
+        });
+
+        // Procedural Animation
+        this.proceduralWalkBtn.addEventListener('click', () => this.toggleProceduralMode('walk'));
+        this.proceduralIdleBtn.addEventListener('click', () => this.toggleProceduralMode('idle'));
+
+        // Canvas click for IK
+        this.canvas.addEventListener('click', (e) => this.handleCanvasClick(e));
 
         // Window resize
         window.addEventListener('resize', () => {
@@ -258,8 +334,23 @@ class AnimationApp {
      * Main render loop
      */
     render() {
-        // Update animation
-        if (this.player.isPlaying) {
+        const deltaTime = 1 / 60; // Approximate for stable physics
+
+        // Update physics
+        if (this.ragdollPhysics.enabled) {
+            this.ragdollPhysics.update(deltaTime);
+        }
+        // Update procedural animation
+        else if (this.proceduralMode) {
+            this.proceduralTime += deltaTime;
+            if (this.proceduralMode === 'walk') {
+                ProceduralAnimation.generateWalkCycle(this.skeleton, 1.0, this.proceduralTime);
+            } else if (this.proceduralMode === 'idle') {
+                ProceduralAnimation.generateIdleBreathing(this.skeleton, this.proceduralTime);
+            }
+        }
+        // Update keyframe animation
+        else if (this.player.isPlaying) {
             this.player.update(performance.now());
             this.updateTimeDisplay();
         }
@@ -279,6 +370,107 @@ class AnimationApp {
 
         this.renderer.resize(width, height);
         this.renderer.centerOnSkeleton(this.skeleton);
+    }
+
+    /**
+     * Enable IK mode for positioning limbs
+     */
+    enableIKMode(mode) {
+        this.ikMode = mode;
+        this.proceduralMode = null;
+        this.player.pause();
+
+        const descriptions = {
+            'arm_left': 'left hand',
+            'arm_right': 'right hand',
+            'leg_left': 'left foot',
+            'leg_right': 'right foot'
+        };
+
+        this.logMessage(`IK Mode: Click on canvas to position ${descriptions[mode]}`, 'info');
+        this.updateSkeletonInfo(`IK Mode: Position ${descriptions[mode]}`);
+    }
+
+    /**
+     * Handle canvas click for IK positioning
+     */
+    handleCanvasClick(e) {
+        if (!this.ikMode) return;
+
+        const rect = this.canvas.getBoundingClientRect();
+        const canvasX = e.clientX - rect.left;
+        const canvasY = e.clientY - rect.top;
+
+        // Convert screen coordinates to world coordinates
+        const worldX = (canvasX - this.renderer.cameraX) / this.renderer.zoom;
+        const worldY = -(canvasY - this.renderer.cameraY) / this.renderer.zoom;
+
+        // Apply IK
+        let success = false;
+        if (this.ikMode === 'arm_left') {
+            success = IKHelper.reachToward(this.skeleton, 'left', worldX, worldY);
+        } else if (this.ikMode === 'arm_right') {
+            success = IKHelper.reachToward(this.skeleton, 'right', worldX, worldY);
+        } else if (this.ikMode === 'leg_left') {
+            success = IKHelper.plantFoot(this.skeleton, 'left', worldX, worldY);
+        } else if (this.ikMode === 'leg_right') {
+            success = IKHelper.plantFoot(this.skeleton, 'right', worldX, worldY);
+        }
+
+        if (success) {
+            this.logMessage(`IK applied successfully`, 'success');
+        } else {
+            this.logMessage(`Target out of reach`, 'warning');
+        }
+
+        this.ikMode = null;
+        this.updateSkeletonInfo('IK complete');
+    }
+
+    /**
+     * Trigger ragdoll physics
+     */
+    triggerRagdoll() {
+        this.player.pause();
+        this.proceduralMode = null;
+        this.ragdollPhysics.triggerRagdoll(Math.random() * 200 - 100, 0);
+        this.physicsEnabledCheckbox.checked = true;
+        this.logMessage('Ragdoll triggered!', 'success');
+        this.updateSkeletonInfo('Ragdoll Active');
+    }
+
+    /**
+     * Reset physics simulation
+     */
+    resetPhysics() {
+        this.ragdollPhysics.reset();
+        this.ragdollPhysics.disable();
+        this.physicsEnabledCheckbox.checked = false;
+        this.skeleton.resetToTPose();
+        this.logMessage('Physics reset', 'info');
+        this.updateSkeletonInfo('Ready to animate');
+    }
+
+    /**
+     * Toggle procedural animation mode
+     */
+    toggleProceduralMode(mode) {
+        if (this.proceduralMode === mode) {
+            this.proceduralMode = null;
+            this.proceduralTime = 0;
+            this.skeleton.resetToTPose();
+            this.logMessage(`Procedural ${mode} stopped`, 'info');
+            this.updateSkeletonInfo('Ready to animate');
+        } else {
+            this.proceduralMode = mode;
+            this.proceduralTime = 0;
+            this.player.pause();
+            this.ragdollPhysics.disable();
+            this.physicsEnabledCheckbox.checked = false;
+            const modeName = mode === 'walk' ? 'Walk Cycle' : 'Breathing Idle';
+            this.logMessage(`Procedural ${modeName} started`, 'success');
+            this.updateSkeletonInfo(`Procedural: ${modeName}`);
+        }
     }
 
     /**
